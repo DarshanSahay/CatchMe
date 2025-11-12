@@ -161,6 +161,7 @@ public class PlayerMovement : NetworkBehaviour
 
         movement = new Vector3(horizontalX, 0f, horizontalY);
         if (movement.sqrMagnitude > 1f) movement.Normalize();
+        animator.SetFloat("isMoving", movement.magnitude);
 
         // Rotation: face movement direction (world-space)
         if (movement.sqrMagnitude > 0f)
@@ -174,11 +175,14 @@ public class PlayerMovement : NetworkBehaviour
 
         // Ground check using CharacterController
         isGrounded = controller.isGrounded;
+        animator.SetBool("isGrounded", isGrounded);
+
         if (isGrounded && velocity.y < 0f)
         {
             // Small downward force to keep controller grounded
             velocity.y = -2f;
             isJumping = false;
+            Time.timeScale = 1f;
         }
 
         if (!isGrounded)
@@ -191,18 +195,17 @@ public class PlayerMovement : NetworkBehaviour
         // Jump input
         if (isGrounded && Input.GetKeyDown(KeyCode.Space))
         {
-            // v = sqrt(2 * g * h) -- gravity is negative
+            //Time.timeScale = 0.2f;
             timeSinceJump = 0f;
             SetInitialJumpVelocity();
-            //currentVelocity = initialVelocity - (Mathf.Abs(gravity) * 2 * timeSinceJump);
-            //controller.velocity = new Vector3(rb_player.linearVelocity.x, currentVelocity, rb_player.linearVelocity.z);
-            //velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
-            //velocity.y = currentVelocity;
+            velocity.y = Mathf.Sqrt(0.2f * -2f * gravity);
             isJumping = true;
+            animator.SetTrigger("isJumping");
         }
 
         // Apply gravity every frame
         velocity.y += gravity * Time.deltaTime;
+        animator.SetFloat("yVelocity", velocity.y);
 
         // Move controller (horizontal + vertical)
         Vector3 finalMove = horizontalMove + new Vector3(0f, velocity.y, 0f);
@@ -220,6 +223,17 @@ public class PlayerMovement : NetworkBehaviour
     {
         initialVelocity = Mathf.Sqrt(2 * (Mathf.Abs(Physics.gravity.y) * jumpHeight));
         isJumping = true;
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (isGrounded)
+            return;
+
+        if (other.CompareTag("Ground"))
+        {
+            animator.SetTrigger("aboutToLand");
+        }
     }
 
     private void OnDrawGizmos()
