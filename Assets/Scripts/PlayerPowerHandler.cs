@@ -7,8 +7,9 @@ using UnityEngine;
 
 public class PlayerPowerHandler : NetworkBehaviour, IPushable
 {
-    [SerializeField] float dashSpeed = 20f;
-    [SerializeField] float dashDuration = 0.15f;
+    public PlayerMovement playerMovement;
+    [SerializeField] float dashSpeed = 10f;
+    [SerializeField] float dashDuration = 5f;
     [SerializeField] private CharacterController controller;
     private bool isDashing = false;
     public GameObject dashEffect;
@@ -99,18 +100,17 @@ public class PlayerPowerHandler : NetworkBehaviour, IPushable
         isDashing = true;
 
         dashEffect.SetActive(true);
-        Vector3 dashDirection = transform.forward;
         float timer = 0f;
 
         while (timer < dashDuration)
         {
-            controller.Move(dashDirection * dashSpeed * Time.deltaTime);
+            playerMovement.currentSpeed = dashSpeed;
             timer += Time.deltaTime;
             yield return null;
         }
 
         isDashing = false;
-
+        playerMovement.currentSpeed = playerMovement.moveSpeed;
         yield return new WaitForSeconds(0.2f);
         dashEffect.SetActive(false);
     }

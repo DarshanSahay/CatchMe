@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using PurrNet;
 using Unity.Cinemachine;
 using UnityEngine;
@@ -8,13 +9,16 @@ public class PlayerMovement : NetworkBehaviour
 {
     [SerializeField] CharacterController controller;
     [SerializeField] Animator animator;
-    [SerializeField] float moveSpeed = 5f;
+    [SerializeField] public float currentSpeed = 5f;
+    [SerializeField] public float moveSpeed = 5f;
     [SerializeField] float turnSpeed = 720f; // degrees per second
     [SerializeField] float jumpHeight = 2f;
     [SerializeField] float gravity = -9.8f;
 
     [SerializeField] bool isGrounded;
     [SerializeField] bool isJumping;
+    [SerializeField] GameObject dustEffect;
+    [SerializeField] GameObject jumpEffect;
 
     // Debug / telemetry
     [SerializeField] float currentNewVelocity = 0f;
@@ -76,7 +80,7 @@ public class PlayerMovement : NetworkBehaviour
         }
 
         // Horizontal move (character controller)
-        Vector3 horizontalMove = movement * moveSpeed;
+        Vector3 horizontalMove = movement * currentSpeed;
 
         if (!isGrounded)
         {
@@ -89,6 +93,9 @@ public class PlayerMovement : NetworkBehaviour
         if (isGrounded && Input.GetKeyDown(KeyCode.Space))
         {
             //Time.timeScale = 0.2f;
+            ParticleSystem.EmissionModule module = dustEffect.GetComponent<ParticleSystem>().emission;
+            module.enabled = false;
+            //dustEffect.SetActive(false);
             timeSinceJump = 0f;
             SetInitialJumpVelocity();
             velocity.y = Mathf.Sqrt(0.2f * -2f * gravity);
@@ -117,15 +124,25 @@ public class PlayerMovement : NetworkBehaviour
         isJumping = true;
     }
 
-    private void OnTriggerEnter(Collider other)
+    private IEnumerator OnTriggerEnter(Collider other)
     {
         if (isGrounded)
-            return;
+            yield return null;
 
         if (other.CompareTag("Ground"))
         {
             animator.SetTrigger("aboutToLand");
         }
+
+        yield return new WaitWhile(() => !isGrounded);
+
+        jumpEffect.SetActive(true);
+
+        yield return new WaitForSeconds(0.1f);
+
+        ParticleSystem.EmissionModule module = dustEffect.GetComponent<ParticleSystem>().emission;
+        module.enabled = true;
+        //dustEffect.SetActive(true);
     }
 
     private void OnDrawGizmos()
